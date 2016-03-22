@@ -11,3 +11,5 @@ fm-workbench/agree/com.rockwellcollins.atc.agree.analysis/.classpath
 fm-workbench/agree/com.rockwellcollins.atc.agree.analysis/.classpath
 fm-workbench/agree/com.rockwellcollins.atc.agree.analysis/.classpath
 *.classpath
+
+fm-workbench/trusted-build/edu.umn.cs.crisys.smaccm.aadl2rtos/aadl2rtos_resource/CommonComponentHeader.stg
