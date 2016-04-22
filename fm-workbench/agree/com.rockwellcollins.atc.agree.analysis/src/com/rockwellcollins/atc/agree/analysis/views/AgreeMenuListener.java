@@ -59,17 +59,17 @@ import com.rockwellcollins.atc.agree.agree.GuaranteeStatement;
 import com.rockwellcollins.atc.agree.agree.LemmaStatement;
 import com.rockwellcollins.atc.agree.analysis.Activator;
 import com.rockwellcollins.atc.agree.analysis.ConsistencyResult;
-import com.rockwellcollins.atc.agree.analysis.Util;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeNode;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeProgram;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeVar;
+import com.rockwellcollins.atc.agree.analysis.AgreeUtils;
 import com.rockwellcollins.atc.agree.analysis.extentions.CexExtractor;
 import com.rockwellcollins.atc.agree.analysis.extentions.CexExtractorRegistry;
 import com.rockwellcollins.atc.agree.analysis.extentions.ExtensionRegistry;
 import com.rockwellcollins.atc.agree.analysis.preferences.PreferenceConstants;
 
 public class AgreeMenuListener implements IMenuListener {
-    private static final GlobalURIEditorOpener globalURIEditorOpener = Util.getGlobalURIEditorOpener();
+    private static final GlobalURIEditorOpener globalURIEditorOpener = AgreeUtils.getGlobalURIEditorOpener();
     private final IWorkbenchWindow window;
     private final AnalysisResultTree tree;
     private AgreeResultsLinker linker;
@@ -148,9 +148,9 @@ public class AgreeMenuListener implements IMenuListener {
 			        	    		 for (PropertyResult prop : allProperties) {
 			        	    			 if (prop.getStatus().equals(jkind.api.results.Status.VALID)){
 			        	    				 ValidProperty vp = (ValidProperty)(prop.getProperty());
-			        	    				 if (!vp.getSupport().isEmpty()){
+			        	    				 if (!vp.getIvc().isEmpty()){
 			        	    					 out.println("{"+vp.getName()+"}");
-				        	    				 for (String supportString : vp.getSupport()) {
+				        	    				 for (String supportString : vp.getIvc()) {
 				        	    				    String componentName = "";
 					           	        			String guranteeName =  "";
  					           	        			if (supportString.contains(".")) {
@@ -217,12 +217,12 @@ public class AgreeMenuListener implements IMenuListener {
             	        		 out.println("Set of Support for Gurantee: "+"{"+vp.getName()+"}");
             	        		 printHLine(out, 2);
             	        		 out.println("");
-                    			 if (!vp.getSupport().isEmpty()){
+                    			 if (!vp.getIvc().isEmpty()){
 	                    			 printHLine(out, 2);
 	                    			 out.println(String.format("%-25s%-25s","Component name","Property name"));
 	            	        		 printHLine(out, 2);
 	            	        		 //Anitha: the support string is returned back as Compname.guratee name. hence I had to demux it here.
-	            	        		 for (String supportString : vp.getSupport()) {
+	            	        		 for (String supportString : vp.getIvc()) {
 	            	        			 String componentName = "";
 	            	        			 String guranteeName =  "";
 	            	        			if (supportString.contains(".")) {
@@ -452,7 +452,12 @@ public class AgreeMenuListener implements IMenuListener {
                         }
 
                         printHLine(out, cex.getLength());
-                        out.println("Variables for " + category);
+                        if (category == "") {
+                            out.println("Variables for the selected component implementation");
+
+                        } else {
+                            out.println("Variables for " + category);
+                        }
                         printHLine(out, cex.getLength());
 
                         out.print(String.format("%-60s", "Variable Name"));

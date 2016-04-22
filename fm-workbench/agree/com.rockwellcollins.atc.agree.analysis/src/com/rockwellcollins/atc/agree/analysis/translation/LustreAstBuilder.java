@@ -2,6 +2,7 @@ package com.rockwellcollins.atc.agree.analysis.translation;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,7 +41,6 @@ import com.rockwellcollins.atc.agree.agree.impl.AssignStatementImpl;
 import com.rockwellcollins.atc.agree.analysis.Activator;
 import com.rockwellcollins.atc.agree.analysis.AgreeException;
 import com.rockwellcollins.atc.agree.analysis.AgreeUtils;
-import com.rockwellcollins.atc.agree.analysis.AgreeVarDecl;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeASTBuilder;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeConnection;
 import com.rockwellcollins.atc.agree.analysis.ast.AgreeNode;
@@ -65,11 +65,7 @@ public class LustreAstBuilder {
 
     public static Program getRealizabilityLustreProgram(AgreeProgram agreeProgram) {
 
-        List<TypeDef> types = new ArrayList<>();
-        for (Type type : agreeProgram.globalTypes) {
-            RecordType recType = (RecordType) type;
-            types.add(new TypeDef(recType.id, type));
-        }
+        List<TypeDef> types = getTypes(agreeProgram);
 
         List<Expr> assertions = new ArrayList<>();
         List<VarDecl> locals = new ArrayList<>();
@@ -158,11 +154,7 @@ public class LustreAstBuilder {
     public static Program getAssumeGuaranteeLustreProgram(AgreeProgram agreeProgram, boolean monolithic) {
 
         nodes = new ArrayList<>();
-        List<TypeDef> types = new ArrayList<>();
-        for (Type type : agreeProgram.globalTypes) {
-            RecordType recType = (RecordType) type;
-            types.add(new TypeDef(recType.id, type));
-        }
+        List<TypeDef> types = getTypes(agreeProgram);
 
         AgreeNode flatNode = flattenAgreeNode(agreeProgram.topNode, topPrefix, monolithic);
         List<Expr> assertions = new ArrayList<>();
@@ -231,7 +223,7 @@ public class LustreAstBuilder {
         builder.addProperties(properties);
         builder.addAssertions(assertions);
       //Anitha: Added this for adding support elements
-        builder.addSupports(setofsupport);
+        builder.addIvcs(setofsupport);
         
         Node main = builder.build();
         nodes.add(main);
@@ -246,11 +238,7 @@ public class LustreAstBuilder {
             boolean monolithic) {
 
         List<Pair<String, Program>> programs = new ArrayList<>();
-        List<TypeDef> types = new ArrayList<>();
-        for (Type type : agreeProgram.globalTypes) {
-            RecordType recType = (RecordType) type;
-            types.add(new TypeDef(recType.id, type));
-        }
+        List<TypeDef> types = getTypes(agreeProgram);
 
         nodes = new ArrayList<>();
         Node topConsist = getConsistencyLustreNode(agreeProgram.topNode, false);
@@ -592,7 +580,7 @@ public class LustreAstBuilder {
         builder.addLocals(locals);
         builder.addEquations(equations);
         //Anitha: Added this to add support elements
-        builder.addSupports(setofsupport);
+        builder.addIvcs(setofsupport);
         
         return builder.build();
     }
@@ -929,6 +917,37 @@ public class LustreAstBuilder {
             }
         }
         nodes.add(node);
+    }
+    
+    protected static List<TypeDef> getTypes(AgreeProgram agreeProgram) {
+        List<TypeDef> types = new ArrayList<>();
+        for (Type type : agreeProgram.globalTypes) {
+            RecordType recType = (RecordType) type;
+            types.add(new TypeDef(recType.id, type));
+        }
+        
+        //add synonym types
+        types.addAll(getTypeSynonmyms());
+        return types;
+    }
+    
+    private static Collection<? extends TypeDef> getTypeSynonmyms() {
+        List<TypeDef> types = new ArrayList<>();
+        
+        types.add(new TypeDef("Base_Types__Boolean", NamedType.BOOL));
+        types.add(new TypeDef("Base_Types__Unsigned", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Unsigned_32", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Unsigned_16", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Unsigned_8", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Integer", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Integer_32", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Integer_16", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Integer_8", NamedType.INT));
+        types.add(new TypeDef("Base_Types__Float", NamedType.REAL));
+        types.add(new TypeDef("Base_Types__Float_32", NamedType.REAL));
+        types.add(new TypeDef("Base_Types__Float_64", NamedType.REAL));
+        
+        return types;
     }
 
 }

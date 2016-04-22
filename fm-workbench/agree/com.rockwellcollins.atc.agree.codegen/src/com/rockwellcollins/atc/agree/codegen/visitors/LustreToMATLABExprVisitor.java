@@ -35,12 +35,17 @@ import com.rockwellcollins.atc.agree.codegen.ast.MATLABFirstTimeVarInit;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABFunction;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABIfFunction;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABImpliesFunction;
+import com.rockwellcollins.atc.agree.codegen.ast.MATLABInt16Type;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABInt32Type;
+import com.rockwellcollins.atc.agree.codegen.ast.MATLABInt8Type;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABLocalBusVarInit;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABPersistentVarInit;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABPreInputVarInit;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABPreLocalVarInit;
 import com.rockwellcollins.atc.agree.codegen.ast.MATLABType;
+import com.rockwellcollins.atc.agree.codegen.ast.MATLABUInt16Type;
+import com.rockwellcollins.atc.agree.codegen.ast.MATLABUInt32Type;
+import com.rockwellcollins.atc.agree.codegen.ast.MATLABUInt8Type;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABArrayAccessExpr;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABArrowFunctionCall;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABBinaryExpr;
@@ -57,6 +62,8 @@ import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABTypeCastExpr;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABTypeInitExpr;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABUnaryExpr;
 import com.rockwellcollins.atc.agree.codegen.ast.expr.MATLABUnaryOp;
+import com.rockwellcollins.atc.agree.codegen.preferences.PreferenceConstants;
+import com.rockwellcollins.atc.agree.codegen.translation.LustreToMATLABTranslator;
 import com.rockwellcollins.atc.agree.codegen.util.UniqueID;
 
 public class LustreToMATLABExprVisitor implements ExprVisitor<MATLABExpr> {
@@ -98,8 +105,31 @@ public class LustreToMATLABExprVisitor implements ExprVisitor<MATLABExpr> {
 		MATLABExpr rightExpr = e.right.accept(this);
 		if(op == null){
 			if(opName.equals("INT_DIVIDE")){
-				MATLABTypeCastExpr castLeftExpr = new MATLABTypeCastExpr(new MATLABInt32Type(),leftExpr);
-				MATLABTypeCastExpr castRightExpr = new MATLABTypeCastExpr(new MATLABInt32Type(),rightExpr);
+		        MATLABType type = null;
+				switch (LustreToMATLABTranslator.intTypeStr) {
+				case PreferenceConstants.INT_INT8:
+					type = new MATLABInt8Type();
+					break;
+				case PreferenceConstants.INT_UINT8:
+					type = new MATLABUInt8Type();
+					break;
+				case PreferenceConstants.INT_INT16:
+					type = new MATLABInt16Type();
+					break;
+				case PreferenceConstants.INT_UINT16:
+					type = new MATLABUInt16Type();
+					break;
+				case PreferenceConstants.INT_INT32:
+					type = new MATLABInt32Type();
+					break;
+				case PreferenceConstants.INT_UINT32:
+					type = new MATLABUInt32Type();
+					break;
+				}
+				MATLABTypeCastExpr castLeftExpr = new MATLABTypeCastExpr(type,
+						leftExpr);
+				MATLABTypeCastExpr castRightExpr = new MATLABTypeCastExpr(type,
+						rightExpr);
 				MATLABBinaryOp castOp = MATLABBinaryOp.fromName("DIVIDE");
 				return new MATLABBinaryExpr(castLeftExpr, castOp, castRightExpr);
 			}
@@ -316,13 +346,37 @@ public class LustreToMATLABExprVisitor implements ExprVisitor<MATLABExpr> {
 			//check if the name is an input or a local
 			//if local, replace . with _
 			if(!inputSet.contains(name)){
-				updatedName = updatedName.replaceAll("\\.","_");
+				//reverse the sequence of the words separated by .
+				//to put the last part after . first
+				//so that after truncation the name still makes sense
+				if(updatedName.contains(".")){
+					String[] nameWords = updatedName.split("\\.");
+					StringBuilder builder = new StringBuilder("");
+					for(int i=nameWords.length - 1; i>=0; i--){
+						builder.append(nameWords[i]);
+						if(i>0){
+							builder.append("_");
+						}
+					}
+					updatedName = builder.toString();
+				}
+			}
+			//check if the name is longer than 63 characters
+			//(the maximum variable length supported by MATLAB)
+			//if yes, truncate it to 63 characters
+			if(updatedName.length() > 63){
+				updatedName = updatedName.substring(0,63);
 			}
 			nameToCheck = updatedName;
 			//check if the updated name and recordId tuple is in the map values
 			//if yes, update the name further so it's unique from existing values
 			while(idMap.containsValue(new UniqueID(nameToCheck, recordId))){
 				varIndex++;
+				//make sure the updated name is not longer than 63 characters
+				int indexLength = String.valueOf(varIndex).length();
+				if((updatedName.length()+indexLength) > 63){
+					updatedName = updatedName.substring(0,(63-indexLength));
+				}
 				nameToCheck = updatedName + "_"+varIndex;
 			}
 			updatedName = nameToCheck;

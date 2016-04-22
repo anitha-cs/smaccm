@@ -7,6 +7,9 @@ import java.util.Set;
 
 import org.eclipse.emf.ecore.EObject;
 
+import com.rockwellcollins.atc.agree.analysis.ast.AgreeASTBuilder;
+import com.rockwellcollins.atc.agree.analysis.translation.LustreAstBuilder;
+
 import jkind.JKindException;
 import jkind.api.results.Renaming;
 import jkind.results.InvalidProperty;
@@ -93,9 +96,10 @@ public class AgreeRenaming extends Renaming {
         if (newName != null) {
             return newName;
         }
+        
         newName = forceRename(original);
 
-        if (findBestReference(original) == null) {
+        if (findBestReference(newName) == null) {
             if (original.equals("%REALIZABLE")) {
                 return "Realizability Result";
             } else if (original.contains("__nodeLemma")) {
@@ -104,6 +108,10 @@ public class AgreeRenaming extends Renaming {
                 //kind2 hacks
                newName = this.explicitRenames.get(newName);
                return newName;
+            } else if(newName.matches("time")){
+                return "time";
+            } else if (original.endsWith(AgreeASTBuilder.clockIDSuffix)){
+                return newName;
             }
             return null;
         }
@@ -115,10 +123,9 @@ public class AgreeRenaming extends Renaming {
     private EObject findBestReference(String refStr) {
 
         EObject ref = null;
-        refStr = refStr.replace(".", "__");
         while (ref == null && refStr != null && !refStr.equals("")) {
             ref = refMap.get(refStr);
-            int index = refStr.lastIndexOf("__");
+            int index = refStr.lastIndexOf(".");
             if (index == -1) {
                 break;
             }
